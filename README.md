@@ -11,3 +11,7 @@ PAKURI: https://github.com/NoraCodes/rloris
 + https://www.geeksforgeeks.org/what-are-max-parallel-http-connections-in-a-browser/
 
 + https://hyper.rs/
+
+# docker  
+
+https://hub.docker.com/r/dongsub11034/tatuya-project
